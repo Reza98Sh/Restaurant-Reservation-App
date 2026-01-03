@@ -27,13 +27,9 @@ A Django REST API for managing restaurant table reservations with automated paym
 - Redis server
 - uv package manager
 
-### Installation
+### Bare Metal Setup
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd restaurant-reservation-app
-
 # Install dependencies using uv
 uv sync
 
@@ -50,23 +46,17 @@ uv run python manage.py loaddata restaurant/fixtures/restaurant.json
 uv run python manage.py loaddata restaurant/fixtures/tables.json
 
 # Start the development server
-uv run python manage.py runserver
+uv run python manage.py runserver 0.0.0.0:8001
+
+# Start Celery worker (in another terminal)
+celery -A config worker -B -l info
 ```
 
-### Docker Setup (Development)
+### Docker Setup
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
-
-### Running Celery
-
-```bash
-# Start Celery worker
-celery -A config worker -B -l info
-```
-
----
 
 ## Running Tests
 
