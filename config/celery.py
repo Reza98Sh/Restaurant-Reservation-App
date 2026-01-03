@@ -31,3 +31,7 @@ app.conf.beat_schedule = {
 
 }
 
+
+# Use file-based scheduler instead of database scheduler
+app.conf.beat_scheduler = 'celery.beat:PersistentScheduler'
+app.conf.beat_schedule_filename = '/app/celerybeat-schedule'

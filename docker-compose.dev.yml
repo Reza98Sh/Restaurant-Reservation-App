@@ -11,6 +11,7 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     networks:
       - reservation_network
     healthcheck:
@@ -19,6 +20,26 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  # Database initializer - runs once to create the database
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: reservation_db_init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./init-db.sql:/init-db.sql:ro
+    networks:
+      - reservation_network
+    entrypoint: >
+      /bin/bash -c "
+        echo 'Creating database...' &&
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -i /init-db.sql &&
+        echo 'Database created successfully!'"
+    restart: "no"
 
   # Redis for Celery broker
   redis:
@@ -46,7 +67,7 @@ services:
       - "8001:8001"
     volumes:
       - .:/app
-      - /app/.venv  # Exclude virtual environment from volume mount
+      - /app/.venv
     env_file:
       - .env
     environment:
@@ -63,13 +84,19 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     networks:
       - reservation_network
     command: >
       sh -c "uv run python manage.py migrate &&
-             uv run python manage.py runserver 0.0.0.0:8001"
+            uv run python manage.py loaddata users/fixtures/users.json &&
+            uv run python manage.py loaddata restaurant/fixtures/restaurant.json &&
+            uv run python manage.py loaddata restaurant/fixtures/tables.json &&
+            uv run python manage.py runserver 0.0.0.0:8001
+            "
 
-  # Celery Worker with Beat scheduler (for development)
+  # Celery Worker with Beat scheduler
   celery:
     build:
       context: .
@@ -77,7 +104,7 @@ services:
     container_name: reservation_celery
     volumes:
       - .:/app
-      - /app/.venv  # Exclude virtual environment from volume mount
+      - /app/.venv
     env_file:
       - .env
     environment:
@@ -86,7 +113,7 @@ services:
       - DB_PORT=1433
       - DB_NAME=${DB_NAME:-reservation_db}
       - DB_USER=${DB_USER:-sa}
-      - DB_PASSWORD=${DB_PASSWORD:-YourStrong@Password123}
+      - DB_PASSWORD=${DB_PASSWORD}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
@@ -98,7 +125,6 @@ services:
         condition: service_started
     networks:
       - reservation_network
-    # Combined worker and beat for development 
     command: uv run celery -A config worker -B -l info
 
 volumes:

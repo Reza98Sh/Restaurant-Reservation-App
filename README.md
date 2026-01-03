@@ -1,4 +1,4 @@
-Restaurant Reservation App
+# Restaurant Reservation App
 
 A Django REST API for managing restaurant table reservations with automated payment expiration handling.
 
@@ -48,7 +48,6 @@ uv run python manage.py migrate
 uv run python manage.py loaddata users/fixtures/users.json
 uv run python manage.py loaddata restaurant/fixtures/restaurant.json
 uv run python manage.py loaddata restaurant/fixtures/tables.json
-uv run python manage.py loaddata reservation/fixtures/reservations.json
 
 # Start the development server
 uv run python manage.py runserver
@@ -64,10 +63,7 @@ docker compose -f docker-compose.dev.yml up --build
 
 ```bash
 # Start Celery worker
-uv run celery -A config worker -l info
-
-# Start Celery beat scheduler (for periodic tasks)
-uv run celery -A config beat -l info
+celery -A config worker -B -l info
 ```
 
 ---
@@ -95,6 +91,18 @@ Once the server is running, access the API documentation at:
 
 - **Swagger UI**: `http://localhost:8001/api/schema/swagger-ui/`
 - **ReDoc**: `http://localhost:8001/api/schema/redoc/`
+
+---
+
+## Admin Panel
+
+Access the Django admin panel for managing users, restaurants, tables, and reservations:
+
+- **URL**: `http://localhost:8001/admin`
+- **Username**: `admin`
+- **Password**: `admin`
+
+> ⚠️ **Note**: These are default development credentials. Make sure to change them in production environments.
 
 ---
 

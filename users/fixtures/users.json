@@ -3,12 +3,12 @@
         "model": "users.customuser",
         "pk": 1,
         "fields": {
-            "password": "pbkdf2_sha256$720000$test$hashedpassword123",
+            "password": "pbkdf2_sha256$1000000$XL9XIZtC4UtJNMPvmPXFbn$2HkOdVn7Cg/yj7XZD0yb2wf5tbaQOd+Upbuit6Ycv1Q=",
             "last_login": null,
             "is_superuser": true,
             "username": "admin",
-            "first_name": "ادمین",
-            "last_name": "سیستم",
+            "first_name": "admin",
+            "last_name": "admin",
             "email": "admin@restaurant.com",
             "is_staff": true,
             "is_active": true,
@@ -89,4 +89,5 @@
             "user_permissions": []
         }
     }
+
 ]
