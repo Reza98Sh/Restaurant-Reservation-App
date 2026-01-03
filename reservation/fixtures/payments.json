@@ -1,0 +1,74 @@
+[
+    {
+        "model": "reservation.paymentrecord",
+        "pk": 1,
+        "fields": {
+            "reservation": 1,
+            "amount": 3000000,
+            "ref_id": "ZP-123456789",
+            "status": "verified",
+            "created_at": "2026-01-02T10:05:00Z",
+            "verified_at": "2026-01-02T10:10:00Z"
+        }
+    },
+    {
+        "model": "reservation.paymentrecord",
+        "pk": 2,
+        "fields": {
+            "reservation": 2,
+            "amount": 800000,
+            "ref_id": "ZP-987654321",
+            "status": "verified",
+            "created_at": "2026-01-02T11:05:00Z",
+            "verified_at": "2026-01-02T11:08:00Z"
+        }
+    },
+    {
+        "model": "reservation.paymentrecord",
+        "pk": 3,
+        "fields": {
+            "reservation": 3,
+            "amount": 4000000,
+            "ref_id": "",
+            "status": "pending",
+            "created_at": "2026-01-02T12:05:00Z",
+            "verified_at": null
+        }
+    },
+    {
+        "model": "reservation.paymentrecord",
+        "pk": 4,
+        "fields": {
+            "reservation": 4,
+            "amount": 1200000,
+            "ref_id": "ZP-456789123",
+            "status": "verified",
+            "created_at": "2026-01-02T13:10:00Z",
+            "verified_at": "2026-01-02T13:15:00Z"
+        }
+    },
+    {
+        "model": "reservation.paymentrecord",
+        "pk": 5,
+        "fields": {
+            "reservation": 5,
+            "amount": 1000000,
+            "ref_id": "ZP-111222333",
+            "status": "verified",
+            "created_at": "2026-01-01T15:10:00Z",
+            "verified_at": "2026-01-01T15:12:00Z"
+        }
+    },
+    {
+        "model": "reservation.paymentrecord",
+        "pk": 6,
+        "fields": {
+            "reservation": 6,
+            "amount": 2000000,
+            "ref_id": "",
+            "status": "stale",
+            "created_at": "2026-01-01T09:10:00Z",
+            "verified_at": null
+        }
+    }
+]

@@ -1,0 +1,14 @@
+[{
+        "model": "restaurant.restaurant",
+        "pk": 1,
+        "fields": {
+            "name": "رستوران اسپیناس",
+            "address": "تهران، خیابان ولیعصر، پلاک 123",
+            "phone": "02112345678",
+            "vip_price_per_seat": 500000,
+            "normal_price_per_seat": 200000,
+            "opening_time": "11:00:00",
+            "closing_time": "23:00:00"
+        }
+    }
+]

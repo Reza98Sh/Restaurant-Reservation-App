@@ -1,0 +1,92 @@
+[
+    {
+        "model": "users.customuser",
+        "pk": 1,
+        "fields": {
+            "password": "pbkdf2_sha256$720000$test$hashedpassword123",
+            "last_login": null,
+            "is_superuser": true,
+            "username": "admin",
+            "first_name": "ادمین",
+            "last_name": "سیستم",
+            "email": "admin@restaurant.com",
+            "is_staff": true,
+            "is_active": true,
+            "date_joined": "2026-01-01T10:00:00Z",
+            "groups": [],
+            "user_permissions": []
+        }
+    },
+    {
+        "model": "users.customuser",
+        "pk": 2,
+        "fields": {
+            "password": "pbkdf2_sha256$720000$test$hashedpassword123",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "ali_mohammadi",
+            "first_name": "علی",
+            "last_name": "محمدی",
+            "email": "ali@example.com",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2026-01-01T12:00:00Z",
+            "groups": [],
+            "user_permissions": []
+        }
+    },
+    {
+        "model": "users.customuser",
+        "pk": 3,
+        "fields": {
+            "password": "pbkdf2_sha256$720000$test$hashedpassword123",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "sara_ahmadi",
+            "first_name": "سارا",
+            "last_name": "احمدی",
+            "email": "sara@example.com",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2026-01-01T14:00:00Z",
+            "groups": [],
+            "user_permissions": []
+        }
+    },
+    {
+        "model": "users.customuser",
+        "pk": 4,
+        "fields": {
+            "password": "pbkdf2_sha256$720000$test$hashedpassword123",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "reza_hosseini",
+            "first_name": "رضا",
+            "last_name": "حسینی",
+            "email": "reza@example.com",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2026-01-02T09:00:00Z",
+            "groups": [],
+            "user_permissions": []
+        }
+    },
+    {
+        "model": "users.customuser",
+        "pk": 5,
+        "fields": {
+            "password": "pbkdf2_sha256$720000$test$hashedpassword123",
+            "last_login": null,
+            "is_superuser": false,
+            "username": "maryam_karimi",
+            "first_name": "مریم",
+            "last_name": "کریمی",
+            "email": "maryam@example.com",
+            "is_staff": false,
+            "is_active": true,
+            "date_joined": "2026-01-02T10:30:00Z",
+            "groups": [],
+            "user_permissions": []
+        }
+    }
+]

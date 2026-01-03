@@ -32,12 +32,14 @@ class ReservationService:
         conflicting_query = Reservation.objects.filter(
             table=table,
             date=date,
-            status__in=[Reservation.Status.PENDING, Reservation.Status.CONFIRMED],).filter(
+            status__in=[Reservation.Status.PENDING, Reservation.Status.CONFIRMED],
+        ).filter(
             # Time overlap check: existing reservation overlaps with requested time
-            Q(start_time__lt=end_time) & Q(end_time__gt=start_time)
+            Q(start_time__lt=end_time)
+            & Q(end_time__gt=start_time)
         )
 
-        # Exclude current reservation if updating
+        # Exclude current reservation if updating (e.g., during an edit operation)
         if exclude_reservation_id:
             conflicting_query = conflicting_query.exclude(id=exclude_reservation_id)
 
@@ -52,7 +54,7 @@ class ReservationService:
         if guest_count > table.capacity:
             return (
                 False,
-                f"تعداد مهمان‌ها ({guest_count}) بیشتر از ظرفیت میز ({table.capacity}) است."
+                f"Guest count ({guest_count}) exceeds table capacity ({table.capacity}).",
             )
         return True, ""
 
@@ -72,7 +74,7 @@ class ReservationService:
         return PaymentRecord.objects.create(
             reservation=reservation,
             amount=reservation.price,
-            status=PaymentRecord.Status.PENDING
+            status=PaymentRecord.Status.PENDING,
         )
 
     @classmethod
@@ -84,16 +86,15 @@ class ReservationService:
         start_time: time,
         end_time: time,
         guest_count: int,
-        from_waitlist: bool = False,
     ) -> Tuple[Optional[Reservation], str]:
         """
         Create a new reservation if table is available.
         Also creates associated PaymentRecord.
-        
+
         Note: Pending reservations will be automatically expired by the
         periodic task 'expire_stale_pending_reservations' if payment is
-        not completed within 10 seconds.
-        
+        not completed within the allowed time.
+
         Returns (reservation, message) tuple.
         """
         # Validate guest count against table capacity
@@ -103,7 +104,7 @@ class ReservationService:
 
         # Check availability
         if not cls.check_table_availability(table, date, start_time, end_time):
-            return None, "این میز در بازه زمانی انتخاب شده رزرو شده است."
+            return None, "This table is already reserved for the selected time slot."
 
         # Calculate price
         price = cls.calculate_price(table, guest_count)
@@ -123,18 +124,15 @@ class ReservationService:
             )
 
             # Set payment deadline
-            deadline_minutes = 1  # For testing; change to 15 or 30 in production
+            deadline_minutes = 15
             reservation.set_payment_deadline(deadline_minutes)
 
             # Create associated PaymentRecord
             cls._create_payment_record(reservation)
-            
-            # No need to schedule individual expiration task anymore!
-            # The periodic task 'expire_stale_pending_reservations' handles this
 
         return (
             reservation,
-            "رزرو با موفقیت ایجاد شد. لطفاً پرداخت را تکمیل کنید.",
+            "Reservation created successfully. Please complete the payment.",
         )
 
     @classmethod
@@ -144,21 +142,34 @@ class ReservationService:
         """
         Cancel a reservation and optionally notify waitlist.
         """
-        from reservation.tasks import process_waitlist_after_cancellation
+        # Store slot info before cancellation
+        table = reservation.table
+        date = reservation.date
+        start_time = reservation.start_time
+        end_time = reservation.end_time
 
+        # Cancel the reservation
         reservation.cancel(reason)
 
-        if notify_waitlist:
-            # Use on_commit to ensure cancellation is saved before task runs
-            def trigger_waitlist_task():
-                process_waitlist_after_cancellation.delay(
-                    table_id=reservation.table_id,
-                    date=reservation.date.isoformat(),
-                    start_time=reservation.start_time.isoformat(),
-                    end_time=reservation.end_time.isoformat(),
-                )
-            
-            transaction.on_commit(trigger_waitlist_task)
+        from reservation.services.waitlist import WaitlistService
+
+        entry = WaitlistService.process_waitlist(
+            table=table,
+            date=date,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        if entry:
+            reservation, _ = cls.create_reservation(
+                user=entry.user,
+                date=entry.date,
+                table=entry.table,
+                start_time=entry.start_time,
+                end_time=entry.end_time,
+                guest_count=entry.guest_count,
+            )
+            entry.convert_to_reservation(reservation)
 
         return True
 

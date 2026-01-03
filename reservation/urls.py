@@ -38,12 +38,24 @@ urlpatterns = [
                     views.PaymentVerifyView.as_view(),
                     name="payment-verification",
                 ),
+                path("history/", views.PaymentListView.as_view(), name="user-payments"),
                 path(
-                    "history/",
-                    views.PaymentListView.as_view(),
-                    name="user-payments"
-
-                )
+                    "<int:pk>/",
+                    views.PaymentDetailView.as_view(),
+                    name="payment-detail",
+                ),
+            ]
+        ),
+    ),
+    path(
+        "waitlist/",
+        include(
+            [
+                path(
+                    "",
+                    views.WaitlistEntryCreateView.as_view(),
+                    name="waitlist-create",
+                ),
             ]
         ),
     ),

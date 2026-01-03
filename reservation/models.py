@@ -15,6 +15,7 @@ class PaymentRecord(models.Model):
         PENDING = "pending", "Pending"
         VERIFIED = "verified", "Verified"
         FAILED = "failed", "Failed"
+        STALE = "stale", "Stale"
 
     reservation = models.ForeignKey(
         "reservation.Reservation", on_delete=models.PROTECT, related_name="payments"
@@ -73,6 +74,7 @@ class Reservation(models.Model):
         CONFIRMED = "confirmed", "Confirmed"
         CANCELLED = "cancelled", "Cancelled"
         COMPLETED = "completed", "Completed"
+        EXPIRED = "expired", "Expired"
 
     user = models.ForeignKey(
         "users.CustomUser", on_delete=models.CASCADE, related_name="reservations"
@@ -191,6 +193,19 @@ class Reservation(models.Model):
         self.cancellation_reason = reason
         self.save(update_fields=["status", "cancellation_reason", "updated_at"])
 
+    def mark_expired(self):
+        """
+        Mark reservation as expired due to payment timeout.
+        Also marks all related pending payment records as stale.
+        """
+        self.status = self.Status.EXPIRED
+        self.save(update_fields=["status", "updated_at"])
+
+        # Fail all pending payment records associated with this reservation
+        self.payments.filter(status=PaymentRecord.Status.PENDING).update(
+            status=PaymentRecord.Status.STALE
+        )
+
     def complete(self):
         """Mark reservation as completed."""
         self.status = self.Status.COMPLETED
@@ -204,7 +219,7 @@ class WaitlistEntry(models.Model):
 
     class Status(models.TextChoices):
         WAITING = "waiting", "Waiting"
-        NOTIFIED = "notified", "Notified"  
+        NOTIFIED = "notified", "Notified"
         CONVERTED = "converted", "Converted to Reservation"
         EXPIRED = "expired", "Expired"
         CANCELLED = "cancelled", "Cancelled by User"
@@ -226,14 +241,10 @@ class WaitlistEntry(models.Model):
         max_length=15, choices=Status.choices, default=Status.WAITING
     )
 
-    # Position in queue (lower = higher priority)
-    position = models.PositiveIntegerField(default=0)
+
 
     # When user was notified
     notified_at = models.DateTimeField(null=True, blank=True)
-
-    # Deadline to complete payment after notification
-    payment_deadline = models.DateTimeField(null=True, blank=True)
 
     # Reference to created reservation (if converted)
     reservation = models.OneToOneField(
@@ -249,7 +260,7 @@ class WaitlistEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["date", "start_time", "position"]
+        ordering = ["date", "start_time",]
         indexes = [
             models.Index(fields=["table", "date", "start_time", "status"]),
             models.Index(fields=["user", "status"]),
@@ -277,7 +288,7 @@ class WaitlistEntry(models.Model):
         self.notified_at = timezone.now()
         self.payment_deadline = timezone.now() + timedelta(minutes=30)
         self.save(
-            update_fields=["status", "notified_at", "payment_deadline", "updated_at"]
+            update_fields=["status", "notified_at", "updated_at"]
         )
 
     def convert_to_reservation(self, reservation: Reservation):
@@ -295,6 +306,3 @@ class WaitlistEntry(models.Model):
         """Cancel waitlist entry."""
         self.status = self.Status.CANCELLED
         self.save(update_fields=["status", "updated_at"])
-
-
-

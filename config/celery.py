@@ -17,16 +17,7 @@ app.autodiscover_tasks()
 
 # Celery Beat Schedule - Periodic Tasks
 app.conf.beat_schedule = {
-    # Task to expire stale pending reservations (older than 10 seconds)
-    # Runs every minute
-    'expire-stale-pending-reservations': {
-        'task': 'reservation.tasks.expire_stale_pending_reservations',
-        'schedule': 60.0,  # Every 60 seconds (1 minute)
-        'options': {
-            'expires': 55,  # Task expires if not executed within 55 seconds
-        }
-    },
-    
+
     # Task to expire reservations past their payment deadline
     # Runs every minute
     'expire-pending-reservations-by-deadline': {

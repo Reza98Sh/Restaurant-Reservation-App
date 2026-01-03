@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from restaurant.models import Restaurant
 from restaurant import models as restaurant_models
-from reservation.models import Reservation, PaymentRecord
+from reservation.models import Reservation, PaymentRecord, WaitlistEntry
 
 
 class CancelReservationSerializer(serializers.Serializer):
@@ -38,7 +38,21 @@ class TableReserveSerializer(serializers.ModelSerializer):
             "price",
             "status",
         ]
-        read_only_fields = ["id", "user", "price", "status"]
+        read_only_fields = ["user", "price", "status"]
+
+
+class ReservationBriefSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Reservation
+        fields = [
+            "id",
+            "date",
+            "start_time",
+            "end_time",
+            "status",
+        ]
+        read_only_fields = fields
 
 
 class TableAvailabilitySerializer(serializers.ModelSerializer):
@@ -47,6 +61,11 @@ class TableAvailabilitySerializer(serializers.ModelSerializer):
     """
 
     price = serializers.IntegerField()
+    has_reservation = serializers.BooleanField()
+
+    overlapping_reservations = ReservationBriefSerializer(
+        source="day_reservations", many=True, read_only=True
+    )
 
     class Meta:
         model = restaurant_models.Table
@@ -56,8 +75,9 @@ class TableAvailabilitySerializer(serializers.ModelSerializer):
             "number",
             "price",
             "capacity",
-            "reservations",
             "table_type",
+            "has_reservation",
+            "overlapping_reservations",
         ]
 
 
@@ -137,9 +157,7 @@ class PaymentVerifySerializer(serializers.Serializer):
     Serializer for verifying a payment.
     """
 
-    ref_id = serializers.CharField(max_length=100, required=False, default="")
-
-
+    payment_id = serializers.IntegerField()
 
 
 class PaymentRecordSerializer(serializers.ModelSerializer):
@@ -167,3 +185,22 @@ class PaymentRecordSerializer(serializers.ModelSerializer):
             "verified_at",
         ]
         read_only_fields = fields
+
+
+class WaitlistEntrySerializer(serializers.ModelSerializer):
+
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = WaitlistEntry
+        fields = [
+            "id",
+            "user",
+            "table",
+            "date",
+            "start_time",
+            "end_time",
+            "guest_count",
+            "status",
+        ]
+        read_only_fields = ["status"]

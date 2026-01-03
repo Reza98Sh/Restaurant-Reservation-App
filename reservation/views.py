@@ -7,13 +7,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from reservation.services.availability import TableAvailabilityService
 from reservation.serializers import (
     TableReserveSerializer,
+    WaitlistEntrySerializer,
     PaymentRecordSerializer,
     PaymentVerifySerializer,
     TableAvailabilitySerializer,
     AvailabilityQuerySerializer,
     CancelReservationSerializer,
 )
-from reservation.models import Reservation, PaymentRecord
+from reservation.models import Reservation, PaymentRecord, WaitlistEntry
 from config import permissions
 from reservation.services.reservation import ReservationService
 
@@ -96,7 +97,6 @@ class ReserveTableView(generics.CreateAPIView):
             start_time=validated_data["start_time"],
             end_time=validated_data["end_time"],
             guest_count=validated_data["guest_count"],
-            from_waitlist=False,
         )
 
         # Check if reservation was created successfully
@@ -145,12 +145,10 @@ class CancelReservationView(generics.GenericAPIView):
         """
         reservation = self.get_object()
 
-        # 1. Validate Input
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         reason = serializer.validated_data.get("reason", "")
 
-        # 2. Validate State Constraints
         if reservation.status in [
             Reservation.Status.CANCELLED,
             Reservation.Status.COMPLETED,
@@ -162,8 +160,7 @@ class CancelReservationView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 3. Call Service Layer
-        # The service handles the DB update and async waitlist processing
+
         success = ReservationService.cancel_reservation(
             reservation=reservation, reason=reason, notify_waitlist=True
         )
@@ -187,13 +184,14 @@ class PaymentVerifyView(generics.GenericAPIView):
     """
 
     serializer_class = PaymentVerifySerializer
+    permission_classes = [permissions.IsAuthenticatedUser]
 
     @extend_schema(
         summary="Verify payment",
         description="Verifies payment and automatically confirms the reservation.",
         responses={
             200: {"description": "Payment verified successfully"},
-            400: {"description": "Invalid payment or already processed"},
+            400: {"description": "Already processed"},
             404: {"description": "Payment not found"},
         },
     )
@@ -201,22 +199,22 @@ class PaymentVerifyView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        authority = serializer.validated_data["authority"]
-        ref_id = serializer.validated_data.get("ref_id", "")
+        payment_id = serializer.validated_data["payment_id"]
 
-        # Find payment by authority
+        # Find pending payment for current user
         try:
             payment = PaymentRecord.objects.get(
-                authority=authority, status=PaymentRecord.Status.PENDING
+                id=payment_id,
+                status=PaymentRecord.Status.PENDING,
+                reservation__user=request.user,
             )
+            payment.verify()
+            payment.reservation.confirm()
         except PaymentRecord.DoesNotExist:
             return Response(
                 {"detail": "Payment not found or already processed."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        # Verify payment (this also confirms reservation)
-        payment.verify(ref_id=ref_id)
 
         return Response(
             {"message": "Payment verified and reservation confirmed."},
@@ -224,32 +222,8 @@ class PaymentVerifyView(generics.GenericAPIView):
         )
 
 
-class PaymentListView(generics.ListAPIView):
-    """
-    View to list payment records.
-    - Admin users: Can see all payments from all users
-    - Regular users: Can only see their own payments
-    """
-
-    serializer_class = PaymentRecordSerializer
+class PaymentAccessMixin:
     permission_classes = [permissions.IsAuthenticatedUser]
-    # Enable filtering, searching, and ordering
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.OrderingFilter,
-    ]
-
-    # Fields that can be filtered
-    filterset_fields = {
-        "status": ["exact"],
-        "created_at": ["gte", "lte", "date"],
-        "verified_at": ["gte", "lte", "date"],
-        "amount": ["gte", "lte", "exact"],
-    }
-
-    # Fields that can be used for ordering
-    ordering_fields = ["created_at", "verified_at", "amount", "status"]
-    ordering = ["-created_at"]  # Default ordering
 
     def get_queryset(self):
         """
@@ -273,3 +247,49 @@ class PaymentListView(generics.ListAPIView):
         else:
             # Regular user can only see their own payments
             return queryset.filter(reservation__user=user)
+
+
+class PaymentListView(PaymentAccessMixin, generics.ListAPIView):
+    """
+    View to list payment records.
+    """
+
+    serializer_class = PaymentRecordSerializer
+    # Enable filtering, searching, and ordering
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.OrderingFilter,
+    ]
+
+    # Fields that can be filtered
+    filterset_fields = {
+        "status": ["exact"],
+        "created_at": ["gte", "lte", "date"],
+        "verified_at": ["gte", "lte", "date"],
+        "amount": ["gte", "lte", "exact"],
+    }
+
+    # Fields that can be used for ordering
+    ordering_fields = ["created_at", "verified_at", "amount", "status"]
+    ordering = ["-created_at"]  # Default ordering
+
+
+class PaymentDetailView(
+    PaymentAccessMixin,
+    generics.RetrieveAPIView,
+):
+    """
+    View to retrieve a single payment record detail.
+    """
+
+    serializer_class = PaymentRecordSerializer
+
+
+class WaitlistEntryCreateView(generics.CreateAPIView):
+    """
+    API endpoint for creating a new waitlist entry.
+    """
+
+    queryset = WaitlistEntry.objects.all()
+    serializer_class = WaitlistEntrySerializer
+    permission_classes = [permissions.IsAuthenticatedUser]

@@ -1,0 +1,110 @@
+[
+    {
+        "model": "reservation.reservation",
+        "pk": 1,
+        "fields": {
+            "user": 2,
+            "table": 1,
+            "date": "2026-01-05",
+            "start_time": "12:00:00",
+            "end_time": "14:00:00",
+            "guest_count": 6,
+            "price": 3000000,
+            "status": "confirmed",
+            "payment_deadline": null,
+            "cancellation_reason": "",
+            "created_at": "2026-01-02T10:00:00Z",
+            "updated_at": "2026-01-02T10:15:00Z"
+        }
+    },
+    {
+        "model": "reservation.reservation",
+        "pk": 2,
+        "fields": {
+            "user": 3,
+            "table": 6,
+            "date": "2026-01-05",
+            "start_time": "13:00:00",
+            "end_time": "15:00:00",
+            "guest_count": 4,
+            "price": 800000,
+            "status": "confirmed",
+            "payment_deadline": null,
+            "cancellation_reason": "",
+            "created_at": "2026-01-02T11:00:00Z",
+            "updated_at": "2026-01-02T11:10:00Z"
+        }
+    },
+    {
+        "model": "reservation.reservation",
+        "pk": 3,
+        "fields": {
+            "user": 4,
+            "table": 2,
+            "date": "2026-01-06",
+            "start_time": "19:00:00",
+            "end_time": "22:00:00",
+            "guest_count": 8,
+            "price": 4000000,
+            "status": "pending",
+            "payment_deadline": "2026-01-02T12:30:00Z",
+            "cancellation_reason": "",
+            "created_at": "2026-01-02T12:00:00Z",
+            "updated_at": "2026-01-02T12:00:00Z"
+        }
+    },
+    {
+        "model": "reservation.reservation",
+        "pk": 4,
+        "fields": {
+            "user": 5,
+            "table": 10,
+            "date": "2026-01-07",
+            "start_time": "20:00:00",
+            "end_time": "22:00:00",
+            "guest_count": 6,
+            "price": 1200000,
+            "status": "confirmed",
+            "payment_deadline": null,
+            "cancellation_reason": "",
+            "created_at": "2026-01-02T13:00:00Z",
+            "updated_at": "2026-01-02T13:20:00Z"
+        }
+    },
+    {
+        "model": "reservation.reservation",
+        "pk": 5,
+        "fields": {
+            "user": 2,
+            "table": 8,
+            "date": "2026-01-04",
+            "start_time": "18:00:00",
+            "end_time": "20:00:00",
+            "guest_count": 5,
+            "price": 1000000,
+            "status": "completed",
+            "payment_deadline": null,
+            "cancellation_reason": "",
+            "created_at": "2026-01-01T15:00:00Z",
+            "updated_at": "2026-01-04T20:30:00Z"
+        }
+    },
+    {
+        "model": "reservation.reservation",
+        "pk": 6,
+        "fields": {
+            "user": 3,
+            "table": 3,
+            "date": "2026-01-03",
+            "start_time": "14:00:00",
+            "end_time": "17:00:00",
+            "guest_count": 4,
+            "price": 2000000,
+            "status": "cancelled",
+            "payment_deadline": null,
+            "cancellation_reason": "تغییر برنامه مشتری",
+            "created_at": "2026-01-01T09:00:00Z",
+            "updated_at": "2026-01-02T08:00:00Z"
+        }
+    }
+]

@@ -2,7 +2,94 @@
 
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Reservation, WaitlistEntry
+from .models import Reservation, WaitlistEntry, PaymentRecord
+
+
+@admin.register(PaymentRecord)
+class PaymentRecordAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for PaymentRecord model.
+    """
+    list_display = (
+        'id',
+        'ref_id',
+        'status_badge',
+        'created_at',
+        'verified_at',
+    )
+    list_filter = ('status', 'created_at', 'verified_at')
+    search_fields = (
+        'ref_id',
+        'reservation__user__username',
+        'reservation__user__email',
+        'reservation__table__restaurant__name',)
+    ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
+    readonly_fields = ('created_at', 'verified_at')
+    list_select_related = ('reservation', 'reservation__user', 'reservation__table')
+
+    # Raw ID field for better performance with many reservations
+    raw_id_fields = ('reservation',)
+
+    fieldsets = (
+        ('Payment Information', {
+            'fields': ('reservation', 'amount', 'status')
+        }),
+        ('Gateway Details', {
+            'fields': ('ref_id',),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'verified_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+
+    def status_badge(self, obj):
+        """
+        Display status as colored badge.
+        """
+        colors = {
+            'pending': '#f0ad4e',   # Orange/Yellow for pending
+            'verified': '#5cb85c',  # Green for verified
+            'failed': '#d9534f',    # Red for failed
+        }
+        color = colors.get(obj.status, '#777')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 3px 8px; '
+            'border-radius: 3px; font-size: 11px;">{}</span>',
+            color,
+            obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+
+    # Admin actions
+    actions = ['mark_as_verified', 'mark_as_failed']
+
+    @admin.action(description='Mark selected payments as verified')
+    def mark_as_verified(self, request, queryset):
+        """
+        Bulk action to verify payments.
+        Note: This uses the model's verify method to also confirm reservations.
+        """
+        count = 0
+        for payment in queryset.filter(status=PaymentRecord.Status.PENDING):
+            payment.verify(ref_id='ADMIN_VERIFIED')
+            count += 1
+        self.message_user(request, f'{count} payment(s) marked as verified.')
+
+    @admin.action(description='Mark selected payments as failed')
+    def mark_as_failed(self, request, queryset):
+        """
+        Bulk action to mark payments as failed.
+        """
+        count = 0
+        for payment in queryset.filter(status=PaymentRecord.Status.PENDING):
+            payment.fail()
+            count += 1
+        self.message_user(request, f'{count} payment(s) marked as failed.')
 
 
 @admin.register(Reservation)
@@ -54,8 +141,6 @@ class ReservationAdmin(admin.ModelAdmin):
         }),
     )
 
-
-
     def status_badge(self, obj):
         """
         Display status as colored badge.
@@ -65,6 +150,7 @@ class ReservationAdmin(admin.ModelAdmin):
             'confirmed': '#5cb85c',
             'cancelled': '#d9534f',
             'completed': '#5bc0de',
+            'expired': '#BA68C8',
         }
         color = colors.get(obj.status, '#777')
         return format_html(
@@ -114,7 +200,6 @@ class WaitlistEntryAdmin(admin.ModelAdmin):
         'table',
         'date',
         'guest_count',
-        'position',
         'status_badge',
         'notified_at'
     )
@@ -124,7 +209,7 @@ class WaitlistEntryAdmin(admin.ModelAdmin):
         'user__email',
         'table__restaurant__name'
     )
-    ordering = ('date', 'start_time', 'position')
+    ordering = ('date', 'start_time',)
     date_hierarchy = 'date'
     list_select_related = ('user', 'table', 'table__restaurant', 'reservation')
 
@@ -136,10 +221,10 @@ class WaitlistEntryAdmin(admin.ModelAdmin):
             'fields': ('user', 'table')
         }),
         ('Waitlist Details', {
-            'fields': ('date', 'start_time', 'end_time', 'guest_count', 'position', 'status')
+            'fields': ('date', 'start_time', 'end_time', 'guest_count',  'status')
         }),
         ('Notification', {
-            'fields': ('notified_at', 'payment_deadline'),
+            'fields': ('notified_at',),
             'classes': ('collapse',)
         }),
         ('Conversion', {

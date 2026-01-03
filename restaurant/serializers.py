@@ -1,17 +1,16 @@
 from rest_framework import serializers
-from restaurant import models as restaurant_models
-from django.db.models import F, Case, When, IntegerField, Prefetch
-from reservation.models import Reservation
+from .models import Restaurant, Table
 
 
 class TableSerializer(serializers.ModelSerializer):
-
-
     class Meta:
-        model = restaurant_models.Table
-        fields = ["id",
-                  "restaurant",
-                  "number",
-                  "capacity",
-                  "table_type",
-                  ]
+        model = Table
+        fields = '__all__'
+
+
+class RestaurantSerializer(serializers.ModelSerializer):
+    tables = TableSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Restaurant
+        fields = '__all__'

@@ -1,22 +1,9 @@
+# urls.py
 from rest_framework.routers import DefaultRouter
-
-from django.urls import path, include
-from restaurant import views
+from .views import RestaurantViewSet, TableViewSet
 
 router = DefaultRouter()
+router.register('restaurants', RestaurantViewSet)
+router.register('tables', TableViewSet)
 
-
-urlpatterns = [
-    # path(
-    #     "table",
-    #     include(
-    #         [
-    #             path(
-    #                 "",
-    #                 views.AvailableTablesView.as_view(),
-    #                 name="table-list",
-    #             ),
-    #         ]
-    #     ),
-    # ),
-]
+urlpatterns = router.urls

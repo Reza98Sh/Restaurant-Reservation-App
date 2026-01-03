@@ -93,14 +93,18 @@ class TableAvailabilityService:
         overlapping_reservations = base_overlap_query.filter(table=OuterRef("pk"))
 
         # Prefetch reservations for the specific date to show in response
-        reservations_for_date = Prefetch(
+        overlapping_reservations_prefetch = Prefetch(
             "reservations",
             queryset=Reservation.objects.filter(
-                date=check_date, status__in=["pending", "confirmed"]
+                date=check_date,
+                status__in=["pending", "confirmed"],
+            ).filter(
+                # Same overlap logic: start1 < end2 AND start2 < end1
+                Q(start_time__lt=end_time) & Q(end_time__gt=start_time)
             ).order_by("start_time"),
             to_attr="day_reservations",
         )
-
+        
         # Calculate seat price based on table type
         seat_price_annotation = Case(
             When(
@@ -121,7 +125,7 @@ class TableAvailabilityService:
             Table.objects.filter(
                 restaurant_id=restaurant_id, capacity__gte=seats_needed
             )
-            .prefetch_related(reservations_for_date)
+            .prefetch_related(overlapping_reservations_prefetch)
             .annotate(
                 # Check if table has overlapping reservation (True = has conflict)
                 has_reservation=Exists(overlapping_reservations),
