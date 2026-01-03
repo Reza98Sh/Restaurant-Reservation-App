@@ -1,8 +1,4 @@
-برای نمایش صحیح ساختار درختی پروژه (Project Structure) در گیتهاب، بهترین روش استفاده از **Code Block** (سه علامت بک‌تیک) است. بدون این علامت‌ها، گیتهاب فاصله‌ها و ایندنت‌ها را نادیده می‌گیرد و ساختار بهم می‌ریزد.
-
-در اینجا فایل اصلاح شده را مشاهده می‌کنید (تنها بخش Project Structure تغییر کرده است):
-
-# Restaurant Reservation App
+Restaurant Reservation App
 
 A Django REST API for managing restaurant table reservations with automated payment expiration handling.
 
@@ -112,11 +108,9 @@ Once the server is running, access the API documentation at:
 
 ![Automatic Expiration Flow (Celery Task)](docs/images/fig02.png)
 
-
 ### Reservation Cancellation & Waitlist Flow
 
 ![Reservation Cancellation & Waitlist Flow](docs/images/fig03.png)
-
 
 ### Waitlist Entry Flow
 
