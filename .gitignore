@@ -172,7 +172,6 @@ django-media/*
 
 
 
-*.png
 *.pdf
 
 *-.xlsx

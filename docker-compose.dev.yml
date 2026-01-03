@@ -1,52 +1,110 @@
-
 services:
-  # SQL Server Service
+  # SQL Server Database
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sqlserver_db
+    container_name: reservation_sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=YourStrong@Password123
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
       - MSSQL_PID=Developer
     ports:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
     networks:
-      - django_network
+      - reservation_network
     healthcheck:
-      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrong@Password123" -C -Q "SELECT 1" || exit 1
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${DB_PASSWORD}" -C -Q "SELECT 1" || exit 1
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
 
+  # Redis for Celery broker
+  redis:
+    image: redis:7-alpine
+    container_name: reservation_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - reservation_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   # Django Web Application
   web:
-    build: .
-    container_name: django_app
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: reservation_web
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - .:/app
+      - /app/.venv  # Exclude virtual environment from volume mount
+    env_file:
+      - .env
     environment:
       - DEBUG=1
       - DB_HOST=sqlserver
-      - DB_NAME=django_db
-      - DB_USER=sa
-      - DB_PASSWORD=YourStrong@Password123
+      - DB_PORT=1433
+      - DB_NAME=${DB_NAME:-reservation_db}
+      - DB_USER=${DB_USER:-sa}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       sqlserver:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
-      - django_network
+      - reservation_network
     command: >
-      sh -c "python myproject/manage.py migrate &&
-             python myproject/manage.py runserver 0.0.0.0:8000"
+      sh -c "uv run python manage.py migrate &&
+             uv run python manage.py runserver 0.0.0.0:8001"
+
+  # Celery Worker with Beat scheduler (for development)
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: reservation_celery
+    volumes:
+      - .:/app
+      - /app/.venv  # Exclude virtual environment from volume mount
+    env_file:
+      - .env
+    environment:
+      - DEBUG=1
+      - DB_HOST=sqlserver
+      - DB_PORT=1433
+      - DB_NAME=${DB_NAME:-reservation_db}
+      - DB_USER=${DB_USER:-sa}
+      - DB_PASSWORD=${DB_PASSWORD:-YourStrong@Password123}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    networks:
+      - reservation_network
+    # Combined worker and beat for development 
+    command: uv run celery -A config worker -B -l info
 
 volumes:
   sqlserver_data:
+  redis_data:
 
 networks:
-  django_network:
+  reservation_network:
     driver: bridge

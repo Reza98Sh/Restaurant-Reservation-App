@@ -9,13 +9,13 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install system dependencies and Microsoft ODBC driver in one layer
-# Using the new method for adding GPG keys (apt-key is deprecated)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
         gnupg2 \
         apt-transport-https \
         unixodbc \
+        unixodbc-dev \
         ca-certificates \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg \
@@ -23,17 +23,17 @@ RUN apt-get update \
     && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
     && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 \
-    && apt-get purge -y --auto-remove curl gnupg2 apt-transport-https \
+    && apt-get purge -y --auto-remove gnupg2 apt-transport-https \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for faster dependency management
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy project files
+# Copy dependency files first (for better caching)
 COPY pyproject.toml uv.lock ./
 
-# Install Python dependencies using uv
-RUN uv sync --frozen --no-dev
+# Install Python dependencies using uv (including dev dependencies for development)
+RUN uv sync --frozen
 
 # Copy project files
 COPY . .
@@ -41,5 +41,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run the application
+# Default command (can be overridden in docker-compose)
 CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]

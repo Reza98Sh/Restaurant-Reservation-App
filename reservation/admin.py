@@ -244,7 +244,7 @@ class WaitlistEntryAdmin(admin.ModelAdmin):
             'notified': '#f0ad4e',
             'converted': '#5cb85c',
             'expired': '#d9534f',
-            'cancelled': '#777',
+            'cancelled': '#777777',
         }
         color = colors.get(obj.status, '#777')
         return format_html(

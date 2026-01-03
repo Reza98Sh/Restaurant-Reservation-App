@@ -17,35 +17,6 @@ class ReservationService:
     """
 
     @staticmethod
-    def check_table_availability(
-        table: Table,
-        date: datetime.date,
-        start_time: time,
-        end_time: time,
-        exclude_reservation_id: Optional[int] = None,
-    ) -> bool:
-        """
-        Check if a table is available for the given time slot.
-        Returns True if available, False otherwise.
-        """
-        # Query for conflicting reservations
-        conflicting_query = Reservation.objects.filter(
-            table=table,
-            date=date,
-            status__in=[Reservation.Status.PENDING, Reservation.Status.CONFIRMED],
-        ).filter(
-            # Time overlap check: existing reservation overlaps with requested time
-            Q(start_time__lt=end_time)
-            & Q(end_time__gt=start_time)
-        )
-
-        # Exclude current reservation if updating (e.g., during an edit operation)
-        if exclude_reservation_id:
-            conflicting_query = conflicting_query.exclude(id=exclude_reservation_id)
-
-        return not conflicting_query.exists()
-
-    @staticmethod
     def validate_guest_count(table: Table, guest_count: int) -> Tuple[bool, str]:
         """
         Validate that guest count doesn't exceed table capacity.
@@ -102,15 +73,19 @@ class ReservationService:
         if not is_valid:
             return None, error_message
 
-        # Check availability
-        if not cls.check_table_availability(table, date, start_time, end_time):
-            return None, "This table is already reserved for the selected time slot."
-
-        # Calculate price
-        price = cls.calculate_price(table, guest_count)
+        from reservation.services.availability import TableAvailabilityService
 
         # Create reservation inside atomic transaction
         with transaction.atomic():
+            # Check availability
+            if not TableAvailabilityService.check_specific_table_availability(
+                table, date, start_time, end_time
+            ):
+                return None, "This table is already reserved."
+
+            # Calculate price
+            price = cls.calculate_price(table, guest_count)
+
             # Create reservation
             reservation = Reservation.objects.create(
                 user=user,

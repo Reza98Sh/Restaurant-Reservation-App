@@ -47,6 +47,9 @@ class PaymentRecord(models.Model):
         """
         Verify payment and confirm the linked reservation.
         """
+        if self.status != self.Status.PENDING:
+            raise ValidationError("Payment is already processed.")
+        
         self.status = self.Status.VERIFIED
         self.ref_id = ref_id
         self.verified_at = timezone.now()

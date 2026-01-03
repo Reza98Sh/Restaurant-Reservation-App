@@ -118,7 +118,7 @@ class CancelReservationView(generics.GenericAPIView):
     """
 
     serializer_class = CancelReservationSerializer
-
+    permission_classes = [permissions.IsAuthenticatedUser]
     lookup_field = "pk"
 
     def get_queryset(self):
@@ -148,7 +148,7 @@ class CancelReservationView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         reason = serializer.validated_data.get("reason", "")
-
+        
         if reservation.status in [
             Reservation.Status.CANCELLED,
             Reservation.Status.COMPLETED,

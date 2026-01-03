@@ -12,6 +12,7 @@ from django.db.models import (
     ExpressionWrapper,
 )
 from datetime import date, time
+from typing import Optional
 
 from reservation.models import Reservation
 from restaurant.models import Table
@@ -56,20 +57,19 @@ class TableAvailabilityService:
         check_date: date,
         start_time: time,
         end_time: time,
+        exclude_reservation_id: Optional[int] = None,
     ) -> bool:
         """
         Check if a SPECIFIC table is available.
-        Reusable method to be called by ReservationService.
+        Used by both availability queries and reservation creation.
         """
-        # Get the base conflict query
         conflicting_query = cls._get_overlap_base_query(
             check_date, start_time, end_time
-        )
-
-        # Filter for the specific table
-        conflicting_query = conflicting_query.filter(table=table)
-
-        # If conflicts exist, table is NOT available
+        ).filter(table=table)
+        
+        if exclude_reservation_id:
+            conflicting_query = conflicting_query.exclude(id=exclude_reservation_id)
+        
         return not conflicting_query.exists()
 
     @classmethod

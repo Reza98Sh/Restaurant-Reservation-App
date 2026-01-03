@@ -36,10 +36,6 @@ class CustomUser(AbstractUser, PermissionsMixin):
         _('date joined'),
         default=timezone.now
     )
-    updated_at = models.DateTimeField(
-        _('updated at'),
-        auto_now=True
-    )
 
 
     class Meta:
